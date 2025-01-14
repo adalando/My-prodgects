@@ -1,0 +1,40 @@
+*{
+    
+    background-color: rgb(196, 235, 238);
+}
+table{
+    font-weight: bold;
+    font-size: 30px;
+    text-align: center;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 2px solid rgb(250, 164, 114);
+    border-radius: 18px;
+}
+table td{
+    border: 1px solid rgb(250, 164, 114);
+    padding: 3px 20px 3px 20px;
+}
+tr{
+    align-items: center;
+    background-color: rgba(240, 230, 217, 0.507);
+}
+table tr:first-child td:first-child {
+    border-radius: 15px 0 0 0;
+}
+
+table tr:first-child td:last-child {
+    border-radius: 0 15px 0 0;
+}
+
+table tr:last-child td:first-child {
+    border-radius: 0 0 0 15px;
+}
+
+table tr:last-child td:last-child {
+    border-radius: 0 0 15px 0;
+}
+.conteiner{
+    justify-content: center;
+    padding: 10px 20px 0px 20px;
+}

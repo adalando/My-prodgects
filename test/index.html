@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="//api.bitrix24.com/api/v1/"></script>
+    <script src="./js/app.js"></script>
+    <script src="./js/vue.js"></script>
+    <link rel="stylesheet" href="./css/app.css">
+    <title>Document</title>
+</head>
+
+<body>
+    <div class="conteiner" id="app">
+        <table class="table_info">
+            <tr>
+                <td>Имя</td>
+                <td>Количество сделок</td>
+                <td>Сумма всех сделок</td>
+                <td>Средняя сумма сделок</td>
+            </tr>
+            <tr v-for="item in contacts">
+                <td @click="contactName(item)">{{item['NAME']}}</td>
+                <td>{{item["DEALS_COUNT"]}}</td>
+                <td>{{item["DEALS_SUMM"]}}</td>
+                <td v-if="Math.round(item.DEALS_SUMM/item.DEALS_COUNT) > 152000"
+                    style="background-color: rgba(0, 128, 0, 0.562)">{{
+                    Math.round(item["DEALS_SUMM"]/item["DEALS_COUNT"]) }}</td>
+                <td v-else-if="Math.round(item.DEALS_SUMM/item.DEALS_COUNT) < 143000"
+                    style="background-color: rgba(255, 0, 0, 0.644)">{{
+                    Math.round(item["DEALS_SUMM"]/item["DEALS_COUNT"]) }}</td>
+                <td v-else>{{ Math.round(item["DEALS_SUMM"]/item["DEALS_COUNT"]) }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <script>
+        const app = new Vue({
+            el: '#app',
+            data: {
+                contacts: {}
+            },
+            mounted() {
+                this.getContacts()
+            },
+            methods: {
+                getContacts() {
+                    BX24.callMethod('crm.contact.list', {}, function (contacts) {
+                        if (contacts.error()) {
+                            console.error(contacts.error())
+                        } else {
+                            for (let i = 0; i < contacts.data().length; i++) {
+                                app.contacts[contacts.data()[i].ID] = {
+                                    'NAME': contacts.data()[i].NAME + ' ' + contacts.data()[i].LAST_NAME,
+                                    'DEALS_COUNT': 0,
+                                    'DEALS_SUMM': 0,
+                                    'DEALS': []
+                                };
+                            }
+                            app.getDeals()
+                        }
+                    });
+                },
+                getDeals() {
+                    BX24.callMethod('crm.deal.list', {
+                    }, function (deals) {
+                        if (deals.error()) {
+                            console.error(deals.error())
+                        } else {
+                            for (let i = 0; i < deals.data().length; i++) {
+                                deals.data()[i]['OPPORTUNITY'] = +deals.data()[i]['OPPORTUNITY'];
+                                app.contacts[deals.data()[i].CONTACT_ID]['DEALS'].push(deals.data()[i])
+                                app.contacts[deals.data()[i].CONTACT_ID]['DEALS_COUNT'] = app.contacts[deals.data()[i].CONTACT_ID]['DEALS'].length
+                                app.contacts[deals.data()[i].CONTACT_ID]['DEALS_SUMM'] += +deals.data()[i]['OPPORTUNITY']
+                            }
+                            if (deals.more()) {
+                                deals.next();
+                            } else {
+                                app.$forceUpdate()
+                            }
+                        }
+                    }
+                    );
+
+                },
+                contactName(item) {
+                    let countOfIncrease = prompt("Введите число сделок",'')
+                    let countIncrease = prompt("Введите сумму увелечения",'')
+                    console.info(item['DEALS'])
+                    for(let i = 0; i < item['DEALS'].length; i++){
+                        item['DEALS'][i].OPPORTUNITY += +countIncrease
+                        console.info(item['DEALS'][i].OPPORTUNITY)
+                    }
+                },
+            }
+        });
+    </script>
+</body>
+
+</html>
