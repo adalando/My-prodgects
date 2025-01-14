@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="//api.bitrix24.com/api/v1/"></script>
+    <script src="//code.jquery.com/jquery-1.11.2.js"></script>
+    <script src="//code.jquery.com/ui/1.11.4/jquery-ui.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <link rel="stylesheet" href="./css/css.css">
+    <title>Report</title>
+</head>
+
+<body>
+    <div class="app">
+        <table>
+            <thead class="tableHead">
+                <tr>
+                    <td>Id</td>
+                    <td>Дата создания</td>
+                    <td>Название</td>
+                    <td>Оветсвенный</td>
+                    <td>Крайний срок сдачи</td>
+                    <td></td>
+                    <td>Завершенно</td>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for="(task, i) in tasks">
+                    <td>{{task.id}}</td>
+                    <td>{{task.dateCreate}}</td>
+                    <td>{{task.title}}</td>
+                    <td>{{task.responsible}}</td>
+                    <td>{{task.deadline}}</td>
+                    <td style="cursor: pointer">
+                        <div @click="updateRecord(task.taskId, i)" v-if="task.complited == '1'" style="color: green">✔
+                        </div>
+                        <div @click="deliteRecord(task.id, i)" v-else style="color: red">X</div>
+                    </td>
+                    <td>{{getComplited(task.complited)}}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <script>
+        const app = new Vue({
+            el: '.app',
+            data: {
+                tasks: [],
+                dealId: 0,
+                taskId: 0,
+                i: 0,
+            },
+            mounted() {
+                this.main()
+            },
+            methods: {
+                getComplited(compl) {
+                    if (!compl || compl == 0) {
+                        return (0)
+                    } else {
+                        return (compl)
+                    }
+                },
+                main() {
+                    $.ajax({
+                        url: 'https://demo-b24def.pbx-24.ru/api/taskCreate/add/index.php',
+                        success: function (data) {
+                            const parsedData = JSON.parse(data);
+                            app.tasks = parsedData
+                            console.info(app.tasks)
+                        }
+                    });
+                },
+                deliteRecord(id, i) {
+                    let question = prompt('Вы добавляете задачу и сделку на завершение? Если вы уверены, то напишите да, Да или ДА', '')
+
+                    if ((question == 'да') || (question == 'Да') || (question == 'ДА')) {
+                        $.ajax({
+                            url: 'https://demo-b24def.pbx-24.ru/api/taskCreate/update/index.php',
+                            data: {
+                                id: id,
+                            },
+                            success: function (data) {
+                                console.info(data)
+                                app.tasks[i]['complited'] = 1
+                            }
+                        });
+                    } else {
+                        alert('Вы ещё не уверены. Если уверены - напишите: да, Да или ДА')
+                    }
+                },
+                updateRecord(taskId, i) {
+                    let question = prompt('Хотите завершить задачу и сделку? Если вы уверены, то напишите да, Да или ДА', '')
+                    console.info(taskId)
+                    if ((question == 'да') || (question == 'Да') || (question == 'ДА')) {
+                        app.getDealId(taskId, i)
+                    } else {
+                        alert('Вы ещё не уверены. Если уверены - напишите: да, Да или ДА')
+                    }
+                },
+                getDealId(taskId, i) {
+                    app.taskId = taskId
+                    app.i = i
+                    BX24.callMethod(
+                        'tasks.task.get',
+                        {
+                            taskId: app.taskId,
+                            select: ['*', 'UF_*'],
+                        },
+                        function (taskResult) {
+                            if (taskResult.error()) {
+                                console.error(taskResult.error())
+                            } else {
+                                //console.info(taskResult.data())
+                                let taskList = taskResult.data()['task'];
+                                const UF_CRM = taskList['ufCrmTask']
+                                for (i = 0; i < UF_CRM.length; i++) {
+                                    const arr = UF_CRM[i].split('_')
+                                    app.dealId = +arr[1]
+                                }
+                                console.info(app.dealId)
+                                app.closeTask()
+                            }
+                        }
+                    );
+                },
+                closeTask() {
+                    BX24.callMethod(
+                        'tasks.task.complete',
+                        { taskId: app.taskId },
+                        function (result) {
+                            if (result.error()) {
+                                console.error(result.error())
+                            } else {
+                                console.info('Задача успешно закрыта')
+                                app.closeDeal()
+                            }
+                        }
+                    );
+                },
+                closeDeal() {
+                    BX24.callMethod('crm.deal.update', {
+                        ID: app.dealId,
+                        fields: { STAGE_ID: "WON" },
+                    },
+                        function (result) {
+                            if (result.error()) {
+                                console.error(result.error())
+                            } else {
+                                console.info('Сделка успешно закрыта')
+                                app.deleteTasks()
+                            }
+                        });
+                },
+                deleteTasks() {
+                    $.ajax({
+                        url: 'https://demo-b24def.pbx-24.ru/api/taskCreate/delete/index.php',
+                        data: {
+                            taskId: app.taskId,
+                        },
+                        success: function (data) {
+                            console.info(data)
+                            app.tasks.splice(app.i, 1)
+                        }
+                    });
+                },
+            }
+        })
+    </script>
+</body>
+
+</html>
