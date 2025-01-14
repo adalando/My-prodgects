@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="//api.bitrix24.com/api/v1/"></script>
+    <script src="./js/vue.js"></script>
+    <script src="./js/app.js"></script>
+    <link rel="stylesheet" href="./css/app.css">
+    <script src="https://code.jquery.com/jquery-3.7.1.js"
+        integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
+    <title>Отчёт</title>
+</head>
+
+<body>
+    <div class="app">
+        <div class="header">
+            <select class="selectForContacts">
+                <option v-for="(item, key) in contacts" :value="key"> {{item}} </option>
+            </select>
+            <button class="buttunForAdd" @click="transferContact()">
+                <p>Построить отчет</p>
+            </button>
+            <button class="buttunForReport" @click="addProfits()">
+                <p>Записать прибыль в контакт</p>
+            </button>
+            <button class="dataInfo" @click="dataConsol()">
+                <p>Данные в консоль</p>
+            </button>
+        </div>
+        <div class="conteiner">
+            <table>
+                <tr>
+                    <td>Имя</td>
+                    <td>Телефон</td>
+                    <td>Почта</td>
+                </tr>
+                <tr>
+                    <td>{{contacts[contactID]}}</td>
+                    <td><span v-for="item in phones[contactID]">{{item['VALUE']}}<br></span></td>
+                    <td><span v-for="item in emails[contactID]">{{item['VALUE']}}<br></span></td>
+                </tr>
+
+            </table>
+            <table>
+                <tr>
+                    <td>id</td>
+                    <td>Сделки</td>
+                    <td>Сумма</td>
+                    <td>Траты по сделке</td>
+                    <td>Прибыль</td>
+                    <td>Процент от прибыли</td>
+                    <td></td>
+                </tr>
+                <tr v-for="item in deals">
+                    <td>{{item['ID']}}</td>
+                    <td>{{item['TITLE']}}</td>
+                    <td>{{item['OPPORTUNITY']}}</td>
+                    <td>{{item['UF_CRM_1727752226013']}}</td>
+                    <td>{{item['PRIBL']}}</td>
+                    <td>{{item['PRECENT']}}%</td>
+                    <td class="deleteExpense" @click="deleteExpense(item)">X</td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td>Итого:</td>
+                    <td>{{dealsInfo['totalSumm']}}</td>
+                    <td>{{dealsInfo['totalProfit']}}</td>
+                    <td>{{dealsInfo['totalExpense']}}</td>
+                    <td>{{dealsInfo['avPrecent']}}%</td>
+                    <td></td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    <script>
+        const app = new Vue({
+            el: '.app',
+            data: {
+                contacts: {},
+                phones: {},
+                emails: {},
+                deals: [],
+                contactID: '',
+                dealsInfo: {
+                    count: 0,
+                    totalSumm: 0,
+                    totalProfit: 0,
+                    totalExpense: 0,
+                    avPrecent: 0,
+                },
+
+            },
+            mounted() {
+                this.main()
+            },
+            methods: {
+                main() {
+                    BX24.callMethod('crm.contact.list', {
+                        select: [
+                            "*",
+                            "PHONE",
+                            "EMAIL"
+                        ]
+                    }, function (contacts) {
+                        if (contacts.error()) {
+                            console.error(contacts.error())
+                        } else {
+                            for (let i = 0; i < contacts.data().length; i++) {
+                                app.contacts[contacts.data()[i].ID] = contacts.data()[i].NAME + ' ' + contacts.data()[i].LAST_NAME
+                                app.phones[contacts.data()[i].ID] = contacts.data()[i].PHONE
+                                app.emails[contacts.data()[i].ID] = contacts.data()[i].EMAIL
+                            }
+                            console.info(app.contacts)
+                            console.info(app.phones)
+                            console.info(app.emails)
+                            app.$forceUpdate()
+                        }
+                    });
+                },
+
+                transferContact() {
+                    app.contactID = $('.selectForContacts').val()
+                    app.dealsInfo['totalSumm'] = 0
+                    app.dealsInfo['totalProfit'] = 0
+                    app.dealsInfo['totalExpense'] = 0
+                    app.dealsInfo['avPrecent'] = 0
+
+                    console.info(app.contactID)
+                    BX24.callMethod('crm.deal.list', {
+                        select: [
+                            '*',
+                            'UF_*'
+                        ],
+                        filter: {
+                            CONTACT_ID: app.contactID
+                        }
+                    }, function (resultDeals) {
+
+                        if (resultDeals.error()) {
+                            console.error(resultDeals.error())
+                        } else {
+
+                            for (let i = 0; i < resultDeals.data().length; i++) {
+                                const summ = +resultDeals.data()[i]['OPPORTUNITY']
+                                const expense = +resultDeals.data()[i]['UF_CRM_1727752226013']
+                                const profit = summ - expense
+                                const precent = Math.round((profit / summ) * 100)
+
+                                app.dealsInfo['totalSumm'] += summ
+                                app.dealsInfo['totalProfit'] += profit
+                                app.dealsInfo['totalExpense'] += expense
+
+
+                                resultDeals.data()[i]['PRIBL'] = profit
+                                resultDeals.data()[i]['PRECENT'] = precent
+
+                            }
+                            app.dealsInfo['avPrecent'] = Math.round((app.dealsInfo['totalProfit'] / app.dealsInfo['totalSumm']) * 100)
+                            app.deals = resultDeals.data()
+                            console.info(app.deals)
+                            setTimeout(() => {
+                                BX24.fitWindow()
+                            }, 50);
+
+                        }
+                    })
+                },
+                deleteExpense(item) {
+                    let yvereniy = prompt('Вы удаляете траты, вы уверены? Если вы уверены, то напишите да, Да или ДА', '')
+                    if ((yvereniy == 'да') || (yvereniy == 'Да') || (yvereniy == 'ДА')) {
+                        BX24.callMethod('crm.deal.update', {
+                            id: item.ID,
+                            fields: {
+                                UF_CRM_1727752226013: '0',
+                            },
+                        },
+                            function (result) {
+                                if (result.error()) {
+                                    console.error(result.error())
+                                } else {
+                                    console.info(item)
+                                }
+                            }
+                        );
+                    } else {
+                        alert('Вы не уверены в своем решении')
+                    }
+                },
+                addProfits() {
+                    // UF_CRM_1727752604555 - прибыль по сделкам
+
+                    BX24.callMethod('crm.contact.update', {
+                        id: app.contactID,
+                        fields: {
+                            UF_CRM_1727752604555: app.dealsInfo['totalExpense'],
+                        },
+                    },
+                        function (result) {
+                            if (result.error()) {
+                                console.error(result.error())
+                            } else {
+                                alert('Прибыль записана')
+                            }
+                        }
+                    );
+                },
+                dataConsol() {
+                    $.ajax({
+                        url: 'https://b24def-tkblack.pbx-24.ru/bitrix/tkblack/api/clientReport/getDeletedPhones/',
+                        data: {},
+                        success: function (data) {
+                            const parsedData = JSON.parse(data);
+                            console.info(parsedData);
+                        },
+                        error: function (error) {
+                            console.error(error)
+                        }
+                    });
+
+                },
+            }
+        });
+    </script>
+</body>
+
+</html>

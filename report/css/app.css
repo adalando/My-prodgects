@@ -1,0 +1,47 @@
+.header {
+    position: relative;
+    display: flex;
+    padding: 0px 20px 10px 20px;
+}
+
+td {
+    border: 1px solid black;
+    padding: 3px 7px 3px 7px;
+}
+
+table {
+    border-collapse: collapse;
+    padding: 3px 10px;
+    width: 650px;
+}
+
+.conteiner {
+    border: 2px solid black;
+    position: relative;
+    margin: 12px 12px;
+    width: min-content;
+}
+
+button {
+    background-color: #9dcf00;
+    border-radius: 8px;
+    padding: 0px 7px 0px 7px;
+    border: 0.5px solid #fff8d2;
+}
+
+button p {
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: bold;
+    color: #5a5224;
+    text-transform: uppercase;
+}
+
+button:hover {
+    background-color: #d7f282;
+    animation: ease-in 3s infinite;
+}
+
+.deleteExpense {
+    color: rgb(160, 18, 18);
+}
