@@ -66,7 +66,7 @@
                 },
                 main() {
                     $.ajax({
-                        url: 'https://demo-b24def.pbx-24.ru/api/taskCreate/add/index.php',
+                        url: '.../api/taskCreate/add/index.php',
                         success: function (data) {
                             const parsedData = JSON.parse(data);
                             app.tasks = parsedData
@@ -79,7 +79,7 @@
 
                     if ((question == 'да') || (question == 'Да') || (question == 'ДА')) {
                         $.ajax({
-                            url: 'https://demo-b24def.pbx-24.ru/api/taskCreate/update/index.php',
+                            url: '.../api/taskCreate/update/index.php',
                             data: {
                                 id: id,
                             },
@@ -157,7 +157,7 @@
                 },
                 deleteTasks() {
                     $.ajax({
-                        url: 'https://demo-b24def.pbx-24.ru/api/taskCreate/delete/index.php',
+                        url: '.../api/taskCreate/delete/index.php',
                         data: {
                             taskId: app.taskId,
                         },
